@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import { serverTimestamp } from 'firebase/firestore';
 
-const SymptomForm = () => {
+const SymptomForm = ({ onSave }) => {
     const [formData, setFormData] = useState({
         date: '',
         anxiety: '',
@@ -25,11 +26,13 @@ const SymptomForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         try {
             await addDoc(collection(db, 'symptomEntries'), {
                 ...formData,
-                createdAt: Timestamp.now(),
+                createdAt: serverTimestamp(),
             });
+
             alert('Entry saved!');
             setFormData({
                 date: '',
@@ -42,6 +45,9 @@ const SymptomForm = () => {
                 triggers: '',
                 notes: '',
             });
+
+            if (onSave) onSave();
+            component;
         } catch (err) {
             console.error('Error saving entry:', err);
             alert('Failed to save entry');
