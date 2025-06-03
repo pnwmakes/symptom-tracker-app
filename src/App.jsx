@@ -3,6 +3,53 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import SymptomForm from './components/SymptomForm';
 import ViewEntries from './components/ViewEntries';
+import { saveAs } from 'file-saver';
+
+const exportToCSV = (entries) => {
+    if (!entries.length) return;
+
+    const headers = [
+        'Date',
+        'Anxiety',
+        'Depression',
+        'Sleep',
+        'Fatigue',
+        'Pain',
+        'Memory',
+        'Triggers',
+        'Notes',
+    ];
+
+    const csvRows = [
+        headers.join(','), // header row
+        ...entries.map((entry) => {
+            const date = entry.createdAt?.seconds
+                ? new Date(entry.createdAt.seconds * 1000).toLocaleDateString(
+                      'en-US'
+                  )
+                : '';
+            return [
+                date,
+                entry.anxiety ?? '',
+                entry.depression ?? '',
+                entry.sleep ?? '',
+                entry.fatigue ?? '',
+                entry.pain ?? '',
+                entry.memory ?? '',
+                entry.triggers ?? '',
+                `"${(entry.notes || '').replace(/"/g, '""')}"`,
+            ].join(',');
+        }),
+    ];
+
+    const blob = new Blob([csvRows.join('\n')], {
+        type: 'text/csv;charset=utf-8;',
+    });
+    saveAs(
+        blob,
+        `symptom-entries-${new Date().toISOString().slice(0, 10)}.csv`
+    );
+};
 
 function App() {
     const [entries, setEntries] = useState([]);
@@ -92,6 +139,15 @@ function App() {
 
             <SymptomForm onSave={fetchEntries} />
             <hr className='my-8' />
+            {/* <div className='text-right mb-4'>
+                <button
+                    onClick={() => exportToCSV(entries)}
+                    className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow'
+                >
+                    Export to CSV
+                </button>
+            </div> */}
+
             <ViewEntries entries={entries} />
         </div>
     );
