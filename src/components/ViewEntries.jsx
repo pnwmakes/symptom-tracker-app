@@ -1,7 +1,7 @@
 // src/components/ViewEntries.jsx
 import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../fireBaseConfig';
+import { db } from '../firebaseConfig';
 import { exportToPDF } from '../utils/exportToPDF';
 import { exportToCSV } from '../utils/exportToCSV';
 
