@@ -1,178 +1,271 @@
-// src/components/ViewEntries.jsx
-import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import {
+    collection,
+    getDocs,
+    orderBy,
+    query,
+    deleteDoc,
+    doc,
+} from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { exportToPDF } from '../utils/exportToPDF';
-import { exportToCSV } from '../utils/exportToCSV';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { saveAs } from 'file-saver';
 
-function ViewEntries() {
-    const [entries, setEntries] = useState([]);
+const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
     const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState([]);
+    const [endDate, setEndDate] = useState('');
 
-    useEffect(() => {
-        const fetchEntries = async () => {
-            try {
-                const entriesRef = collection(db, 'symptomEntries');
-                const q = query(entriesRef, orderBy('createdAt', 'desc'));
-                const querySnapshot = await getDocs(q);
-                const data = querySnapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
-                setEntries(data);
-            } catch (err) {
-                console.error('Error fetching entries:', err);
-            }
-        };
+    const filtered = entries.filter((entry) => {
+        const createdAt = entry.createdAt?.seconds
+            ? new Date(entry.createdAt.seconds * 1000)
+            : null;
+        if (!createdAt) return false;
 
-        fetchEntries();
-    }, []);
+        const afterStart = !startDate || createdAt >= new Date(startDate);
+        const beforeEnd = !endDate || createdAt <= new Date(endDate);
 
-    const filteredEntries = entries.filter((entry) => {
-        if (!entry.createdAt?.seconds) return false;
-
-        const entryDate = new Date(entry.createdAt.seconds * 1000);
-        const start = startDate ? new Date(startDate) : null;
-        const end = endDate ? new Date(endDate) : null;
-
-        if (start && entryDate < start) return false;
-        if (end && entryDate > end) return false;
-
-        return true;
+        return afterStart && beforeEnd;
     });
 
-    const handlePDFExport = () => {
-        exportToPDF(filteredEntries);
+    const calculateAverage = (field) => {
+        const validValues = filtered
+            .map((entry) => Number(entry[field]))
+            .filter((val) => !isNaN(val));
+        if (!validValues.length) return 'N/A';
+        const sum = validValues.reduce((acc, val) => acc + val, 0);
+        return (sum / validValues.length).toFixed(1);
     };
 
-    const handleCSVExport = () => {
-        exportToCSV(filteredEntries);
+    const exportToCSV = () => {
+        const headers = [
+            'Date',
+            'Anxiety',
+            'Depression',
+            'Sleep',
+            'Fatigue',
+            'Pain',
+            'Memory',
+            'Triggers',
+            'Notes',
+        ];
+
+        const csvRows = [
+            headers.join(','),
+            ...filtered.map((entry) => {
+                const date = entry.createdAt?.seconds
+                    ? new Date(
+                          entry.createdAt.seconds * 1000
+                      ).toLocaleDateString()
+                    : '';
+                return [
+                    date,
+                    entry.anxiety ?? '',
+                    entry.depression ?? '',
+                    entry.sleep ?? '',
+                    entry.fatigue ?? '',
+                    entry.pain ?? '',
+                    entry.memory ?? '',
+                    entry.triggers ?? '',
+                    `"${(entry.notes || '').replace(/"/g, '""')}"`,
+                ].join(',');
+            }),
+        ];
+
+        const blob = new Blob([csvRows.join('\n')], {
+            type: 'text/csv;charset=utf-8;',
+        });
+        saveAs(
+            blob,
+            `symptom-entries-${new Date().toISOString().slice(0, 10)}.csv`
+        );
+    };
+
+    const exportToPDF = () => {
+        const doc = new jsPDF();
+
+        doc.setFontSize(14);
+        doc.text('Symptom Tracker Report', 14, 20);
+
+        const dateRange =
+            startDate || endDate
+                ? `Date Range: ${startDate || '...'} – ${endDate || '...'}`
+                : 'All Entries';
+
+        doc.setFontSize(10);
+        doc.text(dateRange, 14, 28);
+
+        doc.text(
+            `Avg Anxiety: ${calculateAverage(
+                'anxiety'
+            )}  |  Avg Depression: ${calculateAverage(
+                'depression'
+            )}  |  Avg Fatigue: ${calculateAverage(
+                'fatigue'
+            )}  |  Avg Pain: ${calculateAverage(
+                'pain'
+            )}  |  Avg Memory: ${calculateAverage('memory')}`,
+            14,
+            35
+        );
+
+        autoTable(doc, {
+            startY: 40,
+            head: [
+                [
+                    'Date',
+                    'Anxiety',
+                    'Depression',
+                    'Sleep',
+                    'Fatigue',
+                    'Pain',
+                    'Memory',
+                    'Triggers',
+                    'Notes',
+                ],
+            ],
+            body: filtered.map((entry) => [
+                entry.createdAt?.seconds
+                    ? new Date(
+                          entry.createdAt.seconds * 1000
+                      ).toLocaleDateString()
+                    : '',
+                entry.anxiety,
+                entry.depression,
+                entry.sleep,
+                entry.fatigue,
+                entry.pain,
+                entry.memory,
+                entry.triggers,
+                entry.notes,
+            ]),
+        });
+
+        doc.save(`symptom-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+    };
+
+    const handleDelete = async (id) => {
+        const confirmed = window.confirm(
+            'Are you sure you want to delete this entry?'
+        );
+        if (!confirmed) return;
+
+        try {
+            await deleteDoc(doc(db, 'symptomEntries', id));
+            alert('Entry deleted.');
+            refreshEntries?.();
+        } catch (err) {
+            console.error('Error deleting entry:', err);
+            alert('Failed to delete entry.');
+        }
     };
 
     return (
-        <div className='p-4'>
-            <h2 className='text-xl font-bold mb-4'>Saved Entries</h2>
-
-            {/* Date Filter Controls */}
-            <div className='flex flex-col md:flex-row gap-4 mb-4'>
+        <div className='space-y-4'>
+            <div className='flex gap-4 flex-wrap'>
                 <label>
-                    Start Date:{' '}
+                    Start Date:
                     <input
                         type='date'
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className='border px-2 py-1 rounded'
+                        className='ml-2 border px-2 py-1 rounded'
                     />
                 </label>
                 <label>
-                    End Date:{' '}
+                    End Date:
                     <input
                         type='date'
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className='border px-2 py-1 rounded'
+                        className='ml-2 border px-2 py-1 rounded'
                     />
                 </label>
                 <button
-                    onClick={handlePDFExport}
-                    className='bg-blue-600 text-white px-4 py-2 rounded'
+                    onClick={exportToCSV}
+                    className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded'
                 >
-                    Export Filtered PDF
+                    Export CSV
                 </button>
                 <button
-                    onClick={handleCSVExport}
-                    className='bg-green-600 text-white px-4 py-2 rounded'
+                    onClick={exportToPDF}
+                    className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded'
                 >
-                    Export Filtered CSV
+                    Export PDF
                 </button>
             </div>
 
-            {/* Mobile Card View */}
-            <div className='space-y-4 md:hidden'>
-                {filteredEntries.map((entry) => (
-                    <div
-                        key={entry.id}
-                        className='bg-white shadow-md rounded-lg p-4'
-                    >
-                        <p>
-                            <strong>Date:</strong>{' '}
-                            {entry.createdAt?.seconds
-                                ? new Date(
-                                      entry.createdAt.seconds * 1000
-                                  ).toLocaleDateString('en-US', {
-                                      year: 'numeric',
-                                      month: 'long',
-                                      day: 'numeric',
-                                  })
-                                : 'No Date'}
-                        </p>
-                        <p>
-                            <strong>Pain:</strong> {entry.pain}
-                        </p>
-                        <p>
-                            <strong>Fatigue:</strong> {entry.fatigue}
-                        </p>
-                        <p>
-                            <strong>Memory:</strong> {entry.memory}
-                        </p>
-                        <p>
-                            <strong>Notes:</strong> {entry.notes}
-                        </p>
-                    </div>
-                ))}
-            </div>
+            <div className='overflow-x-auto'>
+                <table className='w-full table-auto border-collapse mt-4'>
+                    <thead>
+                        <tr className='bg-gray-200 text-sm'>
+                            <th className='p-2'>Date</th>
+                            <th>Anxiety</th>
+                            <th>Depression</th>
+                            <th>Sleep</th>
+                            <th>Fatigue</th>
+                            <th>Pain</th>
+                            <th>Memory</th>
+                            <th>Triggers</th>
+                            <th>Notes</th>
+                            <th>Edit</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filtered.map((entry) => (
+                            <tr key={entry.id} className='text-sm border-t'>
+                                <td className='p-2'>
+                                    {entry.createdAt?.seconds
+                                        ? new Date(
+                                              entry.createdAt.seconds * 1000
+                                          ).toLocaleDateString()
+                                        : 'No date'}
+                                </td>
 
-            {/* Desktop Table View */}
-            <div className='w-full overflow-x-auto hidden md:block'>
-                <div className='inline-block min-w-full align-middle'>
-                    <table className='min-w-full border-collapse border border-gray-300 text-sm'>
-                        <thead>
-                            <tr>
-                                <th className='border px-4 py-2'>Date</th>
-                                <th className='border px-4 py-2'>Pain</th>
-                                <th className='border px-4 py-2'>Fatigue</th>
-                                <th className='border px-4 py-2'>Memory</th>
-                                <th className='border px-4 py-2'>Notes</th>
+                                <td>{entry.anxiety}</td>
+                                <td>{entry.depression}</td>
+                                <td>{entry.sleep}</td>
+                                <td>{entry.fatigue}</td>
+                                <td>{entry.pain}</td>
+                                <td>{entry.memory}</td>
+                                <td>{entry.triggers}</td>
+                                <td className='max-w-xs break-words whitespace-pre-wrap'>
+                                    {entry.notes}
+                                </td>
+                                <td>
+                                    <button
+                                        onClick={() => onEdit(entry)}
+                                        className='text-blue-600 underline'
+                                    >
+                                        Edit
+                                    </button>
+                                </td>
+                                <td>
+                                    <button
+                                        onClick={() => handleDelete(entry.id)}
+                                        className='text-red-600 underline'
+                                    >
+                                        Delete
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {filteredEntries.map((entry) => (
-                                <tr
-                                    key={entry.id}
-                                    className='odd:bg-white even:bg-gray-50 hover:bg-yellow-100'
+                        ))}
+                        {filtered.length === 0 && (
+                            <tr>
+                                <td
+                                    colSpan='11'
+                                    className='text-center p-4 text-gray-500'
                                 >
-                                    <td className='border border-gray-300 px-4 py-2'>
-                                        {entry.createdAt?.seconds
-                                            ? new Date(
-                                                  entry.createdAt.seconds * 1000
-                                              ).toLocaleDateString('en-US', {
-                                                  year: 'numeric',
-                                                  month: 'long',
-                                                  day: 'numeric',
-                                              })
-                                            : 'No Date'}
-                                    </td>
-                                    <td className='border border-gray-300 px-4 py-2 capitalize'>
-                                        {entry.pain}
-                                    </td>
-                                    <td className='border border-gray-300 px-4 py-2 capitalize'>
-                                        {entry.fatigue}
-                                    </td>
-                                    <td className='border border-gray-300 px-4 py-2 capitalize'>
-                                        {entry.memory}
-                                    </td>
-                                    <td className='border border-gray-300 px-4 py-2 capitalize'>
-                                        {entry.notes}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                                    No entries found for the selected range.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
-}
+};
 
 export default ViewEntries;

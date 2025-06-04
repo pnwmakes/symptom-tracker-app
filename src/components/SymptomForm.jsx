@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+// SymptomForm.jsx
+import React, { useState, useEffect } from 'react';
+import {
+    collection,
+    addDoc,
+    updateDoc,
+    doc,
+    serverTimestamp,
+} from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { serverTimestamp } from 'firebase/firestore';
 
-const SymptomForm = ({ onSave }) => {
+const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
     const [formData, setFormData] = useState({
         date: '',
         anxiety: '',
@@ -16,6 +22,12 @@ const SymptomForm = ({ onSave }) => {
         notes: '',
     });
 
+    useEffect(() => {
+        if (entryToEdit) {
+            setFormData({ ...entryToEdit });
+        }
+    }, [entryToEdit]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
@@ -26,14 +38,19 @@ const SymptomForm = ({ onSave }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         try {
-            await addDoc(collection(db, 'symptomEntries'), {
-                ...formData,
-                createdAt: serverTimestamp(),
-            });
-
-            alert('Entry saved!');
+            if (entryToEdit) {
+                const entryRef = doc(db, 'symptomEntries', entryToEdit.id);
+                await updateDoc(entryRef, { ...formData });
+                alert('Entry updated!');
+                clearEdit();
+            } else {
+                await addDoc(collection(db, 'symptomEntries'), {
+                    ...formData,
+                    createdAt: serverTimestamp(),
+                });
+                alert('Entry saved!');
+            }
             setFormData({
                 date: '',
                 anxiety: '',
@@ -45,7 +62,6 @@ const SymptomForm = ({ onSave }) => {
                 triggers: '',
                 notes: '',
             });
-
             if (onSave) onSave();
         } catch (err) {
             console.error('Error saving entry:', err);
@@ -59,7 +75,7 @@ const SymptomForm = ({ onSave }) => {
             className='w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8 space-y-6 text-gray-800'
         >
             <h2 className='text-3xl font-bold text-center'>
-                Daily Symptom Check
+                {entryToEdit ? 'Edit Symptom Entry' : 'Daily Symptom Check'}
             </h2>
 
             <div>
@@ -75,16 +91,16 @@ const SymptomForm = ({ onSave }) => {
             </div>
 
             {[
-                { name: 'anxiety', label: 'Anxiety' },
-                { name: 'depression', label: 'Depression' },
-                { name: 'sleep', label: 'Trouble Sleeping' },
-                { name: 'fatigue', label: 'Fatigue' },
-                { name: 'memory', label: 'Memory/Focus Issues' },
-                { name: 'triggers', label: 'Triggers or Stressors' },
+                'anxiety',
+                'depression',
+                'sleep',
+                'fatigue',
+                'memory',
+                'triggers',
             ].map((symptom) => (
-                <div key={symptom.name}>
-                    <label className='block font-medium mb-2'>
-                        {symptom.label}:
+                <div key={symptom}>
+                    <label className='block font-medium mb-2 capitalize'>
+                        {symptom}:
                     </label>
                     <div className='flex flex-wrap gap-4'>
                         {['0', '1', '2', '3'].map((val) => (
@@ -94,9 +110,9 @@ const SymptomForm = ({ onSave }) => {
                             >
                                 <input
                                     type='radio'
-                                    name={symptom.name}
+                                    name={symptom}
                                     value={val}
-                                    checked={formData[symptom.name] === val}
+                                    checked={formData[symptom] === val}
                                     onChange={handleChange}
                                     required
                                 />
@@ -112,7 +128,7 @@ const SymptomForm = ({ onSave }) => {
                     </div>
                 </div>
             ))}
-            {/* Physical Pain (1-10 slider) */}
+
             <div>
                 <label className='block font-medium mb-2'>
                     Physical Pain (1–10):
@@ -148,7 +164,7 @@ const SymptomForm = ({ onSave }) => {
                     type='submit'
                     className='bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow'
                 >
-                    Save Entry
+                    {entryToEdit ? 'Update Entry' : 'Save Entry'}
                 </button>
             </div>
         </form>
