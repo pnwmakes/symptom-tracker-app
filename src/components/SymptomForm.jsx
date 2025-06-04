@@ -47,7 +47,6 @@ const SymptomForm = ({ onSave }) => {
             });
 
             if (onSave) onSave();
-            component;
         } catch (err) {
             console.error('Error saving entry:', err);
             alert('Failed to save entry');
