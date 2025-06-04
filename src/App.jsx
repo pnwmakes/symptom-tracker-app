@@ -21,7 +21,7 @@ const exportToCSV = (entries) => {
     ];
 
     const csvRows = [
-        headers.join(','), // header row
+        headers.join(','),
         ...entries.map((entry) => {
             const date = entry.createdAt?.seconds
                 ? new Date(entry.createdAt.seconds * 1000).toLocaleDateString(
@@ -68,27 +68,32 @@ function App() {
         setEntries(data);
     };
 
-    // ✅ Enable notifications only from user-initiated action
+    // ✅ Handle user-initiated notification request
     const handleNotificationRequest = () => {
-        Notification.requestPermission().then((permission) => {
-            console.log('User clicked and gave permission:', permission);
-            if (permission === 'granted') {
-                setNotificationsEnabled(true);
-                new Notification('Notifications enabled!', {
-                    body: 'We’ll remind you daily to check your symptoms.',
-                });
-            } else {
-                alert(
-                    'Please enable notifications to receive daily reminders.'
-                );
-            }
-        });
+        if ('Notification' in window) {
+            Notification.requestPermission().then((permission) => {
+                console.log('User clicked and gave permission:', permission);
+                if (permission === 'granted') {
+                    setNotificationsEnabled(true);
+                    new Notification('Notifications enabled!', {
+                        body: 'We’ll remind you daily to check your symptoms.',
+                    });
+                } else {
+                    alert(
+                        'Please enable notifications to receive daily reminders.'
+                    );
+                }
+            });
+        } else {
+            alert('Notifications are not supported on this device/browser.');
+        }
     };
 
     useEffect(() => {
         fetchEntries();
 
-        if (Notification.permission === 'granted') {
+        // ✅ Check permission and set state
+        if ('Notification' in window && Notification.permission === 'granted') {
             setNotificationsEnabled(true);
         }
 
@@ -106,15 +111,20 @@ function App() {
             });
 
             if (
+                'Notification' in window &&
                 Notification.permission === 'granted' &&
                 lastShown !== today &&
                 now.getHours() >= 10 &&
                 now.getHours() <= 18
             ) {
-                new Notification('Daily Symptom Reminder', {
-                    body: 'Don’t forget to fill out your symptom check today!',
-                });
-                localStorage.setItem(lastShownKey, today);
+                try {
+                    new Notification('Daily Symptom Reminder', {
+                        body: 'Don’t forget to fill out your symptom check today!',
+                    });
+                    localStorage.setItem(lastShownKey, today);
+                } catch (err) {
+                    console.warn('Unable to show notification:', err);
+                }
             }
         }, 60 * 1000); // check every minute
 
@@ -125,7 +135,6 @@ function App() {
         <div className='p-4 max-w-3xl mx-auto'>
             <h1 className='text-2xl font-bold mb-4'>Daily Symptom Tracker</h1>
 
-            {/* ✅ Notification enable button */}
             {!notificationsEnabled && (
                 <div className='mb-4'>
                     <button
@@ -139,15 +148,6 @@ function App() {
 
             <SymptomForm onSave={fetchEntries} />
             <hr className='my-8' />
-            {/* <div className='text-right mb-4'>
-                <button
-                    onClick={() => exportToCSV(entries)}
-                    className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow'
-                >
-                    Export to CSV
-                </button>
-            </div> */}
-
             <ViewEntries entries={entries} />
         </div>
     );

@@ -1,6 +1,6 @@
-window.onerror = function (message, source, lineno, colno, error) {
-    alert('Error: ' + message + '\nLine: ' + lineno);
-};
+// window.onerror = function (message, source, lineno, colno, error) {
+//     alert('Error: ' + message + '\nLine: ' + lineno);
+// };
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
