@@ -60,7 +60,11 @@ const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
             'Notes',
         ];
 
+        const legendComment =
+            '# Scale: 0=None, 1=Mild, 2=Moderate, 3=Severe (except Pain: 1–10)';
+
         const csvRows = [
+            legendComment,
             headers.join(','),
             ...filtered.map((entry) => {
                 const date = entry.createdAt?.seconds
@@ -105,6 +109,17 @@ const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
         doc.setFontSize(10);
         doc.text(dateRange, 14, 28);
 
+        // Add symptom scale legend
+        doc.setFontSize(8);
+        doc.text(
+            'Symptom Scale (0–3): 0=None | 1=Mild | 2=Moderate | 3=Severe',
+            14,
+            34
+        );
+        doc.text('Pain Scale: 1–10', 14, 38);
+
+        // Return to standard font size for averages
+        doc.setFontSize(10);
         doc.text(
             `Avg Anxiety: ${calculateAverage(
                 'anxiety'
@@ -116,11 +131,11 @@ const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
                 'pain'
             )}  |  Avg Memory: ${calculateAverage('memory')}`,
             14,
-            35
+            45
         );
 
         autoTable(doc, {
-            startY: 40,
+            startY: 50, // Moved down to fit legend
             head: [
                 [
                     'Date',
