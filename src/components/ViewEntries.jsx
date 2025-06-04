@@ -15,6 +15,16 @@ import { saveAs } from 'file-saver';
 const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // Tailwind's "md" breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const filtered = entries.filter((entry) => {
         const createdAt = entry.createdAt?.seconds
@@ -195,75 +205,138 @@ const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
                 </button>
             </div>
 
-            <div className='overflow-x-auto'>
-                <table className='w-full table-auto border-collapse mt-4'>
-                    <thead>
-                        <tr className='bg-gray-200 text-sm'>
-                            <th className='p-2'>Date</th>
-                            <th>Anxiety</th>
-                            <th>Depression</th>
-                            <th>Sleep</th>
-                            <th>Fatigue</th>
-                            <th>Pain</th>
-                            <th>Memory</th>
-                            <th>Triggers</th>
-                            <th>Notes</th>
-                            <th>Edit</th>
-                            <th>Delete</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filtered.map((entry) => (
-                            <tr key={entry.id} className='text-sm border-t'>
-                                <td className='p-2'>
-                                    {entry.createdAt?.seconds
-                                        ? new Date(
-                                              entry.createdAt.seconds * 1000
-                                          ).toLocaleDateString()
-                                        : 'No date'}
-                                </td>
-
-                                <td>{entry.anxiety}</td>
-                                <td>{entry.depression}</td>
-                                <td>{entry.sleep}</td>
-                                <td>{entry.fatigue}</td>
-                                <td>{entry.pain}</td>
-                                <td>{entry.memory}</td>
-                                <td>{entry.triggers}</td>
-                                <td className='max-w-xs break-words whitespace-pre-wrap'>
-                                    {entry.notes}
-                                </td>
-                                <td>
-                                    <button
-                                        onClick={() => onEdit(entry)}
-                                        className='text-blue-600 underline'
-                                    >
-                                        Edit
-                                    </button>
-                                </td>
-                                <td>
-                                    <button
-                                        onClick={() => handleDelete(entry.id)}
-                                        className='text-red-600 underline'
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {filtered.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan='11'
-                                    className='text-center p-4 text-gray-500'
+            {isMobile ? (
+                <div className='space-y-4'>
+                    {filtered.map((entry) => (
+                        <div
+                            key={entry.id}
+                            className='border p-4 rounded shadow bg-white'
+                        >
+                            <p className='text-sm text-gray-500'>
+                                {entry.createdAt?.seconds
+                                    ? new Date(
+                                          entry.createdAt.seconds * 1000
+                                      ).toLocaleDateString()
+                                    : 'No date'}
+                            </p>
+                            <p>
+                                <strong>Anxiety:</strong> {entry.anxiety}
+                            </p>
+                            <p>
+                                <strong>Depression:</strong> {entry.depression}
+                            </p>
+                            <p>
+                                <strong>Sleep:</strong> {entry.sleep}
+                            </p>
+                            <p>
+                                <strong>Fatigue:</strong> {entry.fatigue}
+                            </p>
+                            <p>
+                                <strong>Pain:</strong> {entry.pain}
+                            </p>
+                            <p>
+                                <strong>Memory:</strong> {entry.memory}
+                            </p>
+                            <p>
+                                <strong>Triggers:</strong> {entry.triggers}
+                            </p>
+                            <p>
+                                <strong>Notes:</strong> {entry.notes}
+                            </p>
+                            <div className='mt-2 flex gap-4'>
+                                <button
+                                    onClick={() => onEdit(entry)}
+                                    className='text-blue-600 underline'
                                 >
-                                    No entries found for the selected range.
-                                </td>
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(entry.id)}
+                                    className='text-red-600 underline'
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                    {filtered.length === 0 && (
+                        <p className='text-center text-gray-500'>
+                            No entries found for the selected range.
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <div className='overflow-x-auto'>
+                    <table className='w-full table-auto border-collapse mt-4'>
+                        <thead>
+                            <tr className='bg-gray-200 text-sm'>
+                                <th className='p-2'>Date</th>
+                                <th>Anxiety</th>
+                                <th>Depression</th>
+                                <th>Sleep</th>
+                                <th>Fatigue</th>
+                                <th>Pain</th>
+                                <th>Memory</th>
+                                <th>Triggers</th>
+                                <th>Notes</th>
+                                <th>Edit</th>
+                                <th>Delete</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {filtered.map((entry) => (
+                                <tr key={entry.id} className='text-sm border-t'>
+                                    <td className='p-2'>
+                                        {entry.createdAt?.seconds
+                                            ? new Date(
+                                                  entry.createdAt.seconds * 1000
+                                              ).toLocaleDateString()
+                                            : 'No date'}
+                                    </td>
+                                    <td>{entry.anxiety}</td>
+                                    <td>{entry.depression}</td>
+                                    <td>{entry.sleep}</td>
+                                    <td>{entry.fatigue}</td>
+                                    <td>{entry.pain}</td>
+                                    <td>{entry.memory}</td>
+                                    <td>{entry.triggers}</td>
+                                    <td className='max-w-xs break-words whitespace-pre-wrap'>
+                                        {entry.notes}
+                                    </td>
+                                    <td>
+                                        <button
+                                            onClick={() => onEdit(entry)}
+                                            className='text-blue-600 underline'
+                                        >
+                                            Edit
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <button
+                                            onClick={() =>
+                                                handleDelete(entry.id)
+                                            }
+                                            className='text-red-600 underline'
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {filtered.length === 0 && (
+                                <tr>
+                                    <td
+                                        colSpan='11'
+                                        className='text-center p-4 text-gray-500'
+                                    >
+                                        No entries found for the selected range.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 };

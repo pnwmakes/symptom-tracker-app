@@ -1,12 +1,5 @@
-// SymptomForm.jsx
 import React, { useState, useEffect } from 'react';
-import {
-    collection,
-    addDoc,
-    updateDoc,
-    doc,
-    serverTimestamp,
-} from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
@@ -24,7 +17,27 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
 
     useEffect(() => {
         if (entryToEdit) {
-            setFormData({ ...entryToEdit });
+            let formattedDate = '';
+
+            if (entryToEdit.date) {
+                formattedDate = entryToEdit.date;
+            } else if (entryToEdit.createdAt?.seconds) {
+                formattedDate = new Date(entryToEdit.createdAt.seconds * 1000)
+                    .toISOString()
+                    .split('T')[0];
+            }
+
+            setFormData({
+                date: formattedDate,
+                anxiety: entryToEdit.anxiety || '',
+                depression: entryToEdit.depression || '',
+                sleep: entryToEdit.sleep || '',
+                fatigue: entryToEdit.fatigue || '',
+                pain: entryToEdit.pain || '',
+                memory: entryToEdit.memory || '',
+                triggers: entryToEdit.triggers || '',
+                notes: entryToEdit.notes || '',
+            });
         }
     }, [entryToEdit]);
 
@@ -39,18 +52,26 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            if (entryToEdit) {
+            const parsedDate = formData.date
+                ? new Date(formData.date + 'T12:00:00Z')
+                : new Date();
+
+            if (entryToEdit && entryToEdit.id) {
                 const entryRef = doc(db, 'symptomEntries', entryToEdit.id);
-                await updateDoc(entryRef, { ...formData });
+                await updateDoc(entryRef, {
+                    ...formData,
+                    createdAt: parsedDate,
+                });
                 alert('Entry updated!');
                 clearEdit();
             } else {
                 await addDoc(collection(db, 'symptomEntries'), {
                     ...formData,
-                    createdAt: serverTimestamp(),
+                    createdAt: parsedDate,
                 });
                 alert('Entry saved!');
             }
+
             setFormData({
                 date: '',
                 anxiety: '',
@@ -62,6 +83,7 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
                 triggers: '',
                 notes: '',
             });
+
             if (onSave) onSave();
         } catch (err) {
             console.error('Error saving entry:', err);
