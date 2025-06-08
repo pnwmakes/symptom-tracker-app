@@ -11,6 +11,7 @@ import { db } from '../firebaseConfig';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
+import { Pencil, Trash2 } from 'lucide-react';
 
 const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
     const [startDate, setStartDate] = useState('');
@@ -18,9 +19,7 @@ const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768); // Tailwind's "md" breakpoint
-        };
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
         checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
@@ -32,110 +31,142 @@ const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
             : null;
         if (!createdAt) return false;
 
-        const afterStart = !startDate || createdAt >= new Date(startDate);
-        const beforeEnd = !endDate || createdAt <= new Date(endDate);
-
-        return afterStart && beforeEnd;
+        const createdDate = createdAt.toISOString().split('T')[0];
+        return (
+            (!startDate || createdDate >= startDate) &&
+            (!endDate || createdDate <= endDate)
+        );
     });
 
-    const calculateAverage = (field) => {
-        const validValues = filtered
-            .map((entry) => Number(entry[field]))
-            .filter((val) => !isNaN(val));
-        if (!validValues.length) return 'N/A';
-        const sum = validValues.reduce((acc, val) => acc + val, 0);
-        return (sum / validValues.length).toFixed(1);
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this entry?'))
+            return;
+        try {
+            await deleteDoc(doc(db, 'symptomEntries', id));
+            refreshEntries();
+        } catch (err) {
+            console.error('Failed to delete:', err);
+            alert('Error deleting entry.');
+        }
     };
 
-    const exportToCSV = () => {
-        const headers = [
-            'Date',
-            'Anxiety',
-            'Depression',
-            'Sleep',
-            'Fatigue',
-            'Pain',
-            'Memory',
-            'Triggers',
-            'Notes',
-        ];
+    const exportCSV = () => {
+        const filteredData = filtered.map((entry) => ({
+            date:
+                entry.date ||
+                new Date(entry.createdAt.seconds * 1000)
+                    .toISOString()
+                    .split('T')[0],
+            anxiety: Number(entry.anxiety ?? 0),
+            depression: Number(entry.depression ?? 0),
+            sleep: Number(entry.sleep ?? 0),
+            fatigue: Number(entry.fatigue ?? 0),
+            pain: Number(entry.pain ?? 0),
+            memory: Number(entry.memory ?? 0),
+            triggers: Number(entry.triggers ?? 0),
+            notes: entry.notes || '',
+        }));
 
-        const legendComment =
-            '# Scale: 0=None, 1=Mild, 2=Moderate, 3=Severe (except Pain: 1–10)';
+        const avg = (key) =>
+            filteredData.length
+                ? (
+                      filteredData.reduce((sum, e) => sum + (e[key] || 0), 0) /
+                      filteredData.length
+                  ).toFixed(1)
+                : 'N/A';
 
-        const csvRows = [
-            legendComment,
-            headers.join(','),
-            ...filtered.map((entry) => {
-                const date = entry.createdAt?.seconds
-                    ? new Date(
-                          entry.createdAt.seconds * 1000
-                      ).toLocaleDateString()
-                    : '';
-                return [
-                    date,
-                    entry.anxiety ?? '',
-                    entry.depression ?? '',
-                    entry.sleep ?? '',
-                    entry.fatigue ?? '',
-                    entry.pain ?? '',
-                    entry.memory ?? '',
-                    entry.triggers ?? '',
-                    `"${(entry.notes || '').replace(/"/g, '""')}"`,
-                ].join(',');
-            }),
-        ];
+        const avgLine = `Avg Anxiety: ${avg(
+            'anxiety'
+        )}  |  Avg Depression: ${avg('depression')}  |  Avg Fatigue: ${avg(
+            'fatigue'
+        )}  |  Avg Pain: ${avg('pain')}  |  Avg Memory: ${avg('memory')}`;
 
-        const blob = new Blob([csvRows.join('\n')], {
-            type: 'text/csv;charset=utf-8;',
-        });
-        saveAs(
-            blob,
-            `symptom-entries-${new Date().toISOString().slice(0, 10)}.csv`
+        const header =
+            'Date,Anxiety,Depression,Sleep,Fatigue,Pain,Memory,Triggers,Notes';
+        const rows = filteredData.map((row) =>
+            [
+                row.date,
+                row.anxiety,
+                row.depression,
+                row.sleep,
+                row.fatigue,
+                row.pain,
+                row.memory,
+                row.triggers,
+                `"${row.notes.replace(/"/g, '""')}"`,
+            ].join(',')
         );
+
+        const csvContent = [
+            'Symptom Tracker Report',
+            'All Entries',
+            avgLine,
+            'Scale: 0=None, 1=Mild, 2=Moderate, 3=Severe  |  Pain: 1–10',
+            '',
+            header,
+            ...rows,
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+        saveAs(blob, 'symptom-report.csv');
     };
 
-    const exportToPDF = () => {
+    const exportPDF = () => {
         const doc = new jsPDF();
+        const filteredData = filtered.map((entry) => ({
+            date:
+                entry.date ||
+                new Date(entry.createdAt.seconds * 1000)
+                    .toISOString()
+                    .split('T')[0],
+            anxiety: Number(entry.anxiety ?? 0),
+            depression: Number(entry.depression ?? 0),
+            sleep: Number(entry.sleep ?? 0),
+            fatigue: Number(entry.fatigue ?? 0),
+            pain: Number(entry.pain ?? 0),
+            memory: Number(entry.memory ?? 0),
+            triggers: Number(entry.triggers ?? 0),
+            notes: entry.notes || '',
+        }));
 
-        doc.setFontSize(14);
+        const avg = (key) =>
+            filteredData.length
+                ? (
+                      filteredData.reduce((sum, e) => sum + (e[key] || 0), 0) /
+                      filteredData.length
+                  ).toFixed(1)
+                : 'N/A';
+
+        const avgLine = `Avg Anxiety: ${avg(
+            'anxiety'
+        )}  |  Avg Depression: ${avg('depression')}  |  Avg Fatigue: ${avg(
+            'fatigue'
+        )}  |  Avg Pain: ${avg('pain')}  |  Avg Memory: ${avg('memory')}`;
+
+        doc.setFontSize(18);
         doc.text('Symptom Tracker Report', 14, 20);
-
-        const dateRange =
-            startDate || endDate
-                ? `Date Range: ${startDate || '...'} – ${endDate || '...'}`
-                : 'All Entries';
-
-        doc.setFontSize(10);
-        doc.text(dateRange, 14, 28);
-
-        // Add symptom scale legend
-        doc.setFontSize(8);
+        doc.setFontSize(12);
+        doc.text('All Entries', 14, 28);
+        doc.text(avgLine, 14, 36);
         doc.text(
-            'Symptom Scale (0–3): 0=None | 1=Mild | 2=Moderate | 3=Severe',
+            'Scale: 0=None, 1=Mild, 2=Moderate, 3=Severe  |  Pain: 1–10',
             14,
-            34
+            44
         );
-        doc.text('Pain Scale: 1–10', 14, 38);
 
-        // Return to standard font size for averages
-        doc.setFontSize(10);
-        doc.text(
-            `Avg Anxiety: ${calculateAverage(
-                'anxiety'
-            )}  |  Avg Depression: ${calculateAverage(
-                'depression'
-            )}  |  Avg Fatigue: ${calculateAverage(
-                'fatigue'
-            )}  |  Avg Pain: ${calculateAverage(
-                'pain'
-            )}  |  Avg Memory: ${calculateAverage('memory')}`,
-            14,
-            45
-        );
+        const rows = filteredData.map((entry) => [
+            entry.date,
+            entry.anxiety,
+            entry.depression,
+            entry.sleep,
+            entry.fatigue,
+            entry.pain,
+            entry.memory,
+            entry.triggers,
+            entry.notes,
+        ]);
 
         autoTable(doc, {
-            startY: 50, // Moved down to fit legend
             head: [
                 [
                     'Date',
@@ -149,208 +180,107 @@ const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
                     'Notes',
                 ],
             ],
-            body: filtered.map((entry) => [
-                entry.createdAt?.seconds
-                    ? new Date(
-                          entry.createdAt.seconds * 1000
-                      ).toLocaleDateString()
-                    : '',
-                entry.anxiety,
-                entry.depression,
-                entry.sleep,
-                entry.fatigue,
-                entry.pain,
-                entry.memory,
-                entry.triggers,
-                entry.notes,
-            ]),
+            body: rows,
+            startY: 50,
+            styles: { fontSize: 10 },
+            theme: 'grid',
         });
 
-        doc.save(`symptom-report-${new Date().toISOString().slice(0, 10)}.pdf`);
-    };
-
-    const handleDelete = async (id) => {
-        const confirmed = window.confirm(
-            'Are you sure you want to delete this entry?'
-        );
-        if (!confirmed) return;
-
-        try {
-            await deleteDoc(doc(db, 'symptomEntries', id));
-            alert('Entry deleted.');
-            refreshEntries?.();
-        } catch (err) {
-            console.error('Error deleting entry:', err);
-            alert('Failed to delete entry.');
-        }
+        const today = new Date().toISOString().split('T')[0];
+        doc.save(`symptom-report-${today}.pdf`);
     };
 
     return (
-        <div className='space-y-4'>
-            <div className='flex gap-4 flex-wrap'>
-                <label>
-                    Start Date:
+        <div className='space-y-6'>
+            <div className='flex flex-wrap gap-4 justify-between items-center mb-4'>
+                <div className='flex gap-2'>
                     <input
                         type='date'
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className='ml-2 border px-2 py-1 rounded'
+                        className='border rounded px-2 py-1'
                     />
-                </label>
-                <label>
-                    End Date:
                     <input
                         type='date'
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className='ml-2 border px-2 py-1 rounded'
+                        className='border rounded px-2 py-1'
                     />
-                </label>
-                <button
-                    onClick={exportToCSV}
-                    className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded'
-                >
-                    Export CSV
-                </button>
-                <button
-                    onClick={exportToPDF}
-                    className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded'
-                >
-                    Export PDF
-                </button>
+                </div>
+                <div className='flex gap-2'>
+                    <button
+                        onClick={exportCSV}
+                        className='bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm'
+                    >
+                        Export CSV
+                    </button>
+                    <button
+                        onClick={exportPDF}
+                        className='bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 text-sm'
+                    >
+                        Export PDF
+                    </button>
+                </div>
             </div>
 
-            {isMobile ? (
-                <div className='space-y-4'>
-                    {filtered.map((entry) => (
-                        <div
-                            key={entry.id}
-                            className='border p-4 rounded shadow bg-white'
-                        >
-                            <p className='text-sm text-gray-500'>
-                                {entry.createdAt?.seconds
-                                    ? new Date(
-                                          entry.createdAt.seconds * 1000
-                                      ).toLocaleDateString()
-                                    : 'No date'}
-                            </p>
-                            <p>
-                                <strong>Anxiety:</strong> {entry.anxiety}
-                            </p>
-                            <p>
-                                <strong>Depression:</strong> {entry.depression}
-                            </p>
-                            <p>
-                                <strong>Sleep:</strong> {entry.sleep}
-                            </p>
-                            <p>
-                                <strong>Fatigue:</strong> {entry.fatigue}
-                            </p>
-                            <p>
-                                <strong>Pain:</strong> {entry.pain}
-                            </p>
-                            <p>
-                                <strong>Memory:</strong> {entry.memory}
-                            </p>
-                            <p>
-                                <strong>Triggers:</strong> {entry.triggers}
-                            </p>
-                            <p>
-                                <strong>Notes:</strong> {entry.notes}
-                            </p>
-                            <div className='mt-2 flex gap-4'>
-                                <button
-                                    onClick={() => onEdit(entry)}
-                                    className='text-blue-600 underline'
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(entry.id)}
-                                    className='text-red-600 underline'
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                    {filtered.length === 0 && (
-                        <p className='text-center text-gray-500'>
-                            No entries found for the selected range.
-                        </p>
-                    )}
-                </div>
+            {filtered.length === 0 ? (
+                <p className='text-center text-gray-500'>
+                    No entries found for the selected dates.
+                </p>
             ) : (
-                <div className='overflow-x-auto'>
-                    <table className='w-full table-auto border-collapse mt-4'>
-                        <thead>
-                            <tr className='bg-gray-200 text-sm'>
-                                <th className='p-2'>Date</th>
-                                <th>Anxiety</th>
-                                <th>Depression</th>
-                                <th>Sleep</th>
-                                <th>Fatigue</th>
-                                <th>Pain</th>
-                                <th>Memory</th>
-                                <th>Triggers</th>
-                                <th>Notes</th>
-                                <th>Edit</th>
-                                <th>Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map((entry) => (
-                                <tr key={entry.id} className='text-sm border-t'>
-                                    <td className='p-2'>
-                                        {entry.createdAt?.seconds
-                                            ? new Date(
-                                                  entry.createdAt.seconds * 1000
-                                              ).toLocaleDateString()
-                                            : 'No date'}
-                                    </td>
-                                    <td>{entry.anxiety}</td>
-                                    <td>{entry.depression}</td>
-                                    <td>{entry.sleep}</td>
-                                    <td>{entry.fatigue}</td>
-                                    <td>{entry.pain}</td>
-                                    <td>{entry.memory}</td>
-                                    <td>{entry.triggers}</td>
-                                    <td className='max-w-xs break-words whitespace-pre-wrap'>
-                                        {entry.notes}
-                                    </td>
-                                    <td>
-                                        <button
-                                            onClick={() => onEdit(entry)}
-                                            className='text-blue-600 underline'
-                                        >
-                                            Edit
-                                        </button>
-                                    </td>
-                                    <td>
-                                        <button
-                                            onClick={() =>
-                                                handleDelete(entry.id)
-                                            }
-                                            className='text-red-600 underline'
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
+                filtered.map((entry) => (
+                    <div
+                        key={entry.id}
+                        className='bg-white shadow rounded-lg p-4 space-y-2 text-sm'
+                    >
+                        <div className='font-semibold text-gray-800'>
+                            {entry.date ||
+                                new Date(
+                                    entry.createdAt.seconds * 1000
+                                ).toLocaleDateString()}
+                        </div>
+
+                        <div className='grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2'>
+                            {[
+                                'anxiety',
+                                'depression',
+                                'sleep',
+                                'fatigue',
+                                'pain',
+                                'memory',
+                                'triggers',
+                            ].map((symptom) => (
+                                <div key={symptom} className='mb-1'>
+                                    <strong className='capitalize'>
+                                        {symptom}:
+                                    </strong>{' '}
+                                    {entry[symptom] ?? 'N/A'}
+                                </div>
                             ))}
-                            {filtered.length === 0 && (
-                                <tr>
-                                    <td
-                                        colSpan='11'
-                                        className='text-center p-4 text-gray-500'
-                                    >
-                                        No entries found for the selected range.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                        </div>
+
+                        {entry.notes && (
+                            <div className='mt-2'>
+                                <strong>Notes:</strong> {entry.notes}
+                            </div>
+                        )}
+
+                        <div className='flex gap-4 justify-end pt-3 text-sm'>
+                            <button
+                                onClick={() => onEdit(entry)}
+                                className='flex items-center gap-1 text-blue-600 hover:underline'
+                            >
+                                <Pencil size={16} /> Edit
+                            </button>
+                            <button
+                                onClick={() => handleDelete(entry.id)}
+                                className='flex items-center gap-1 text-red-600 hover:underline'
+                            >
+                                <Trash2 size={16} /> Delete
+                            </button>
+                        </div>
+                    </div>
+                ))
             )}
         </div>
     );
