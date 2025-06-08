@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import { auth } from '../firebaseConfig';
 
 const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
     const [formData, setFormData] = useState({
@@ -68,7 +69,9 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
                 await addDoc(collection(db, 'symptomEntries'), {
                     ...formData,
                     createdAt: parsedDate,
+                    userId: auth.currentUser.uid, // ✅ tie entry to logged-in user
                 });
+
                 alert('Entry saved!');
             }
 
