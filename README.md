@@ -1,49 +1,62 @@
-# Symptom Tracker
+# Symptom Tracker App
 
-The Symptom Tracker is a full-stack web application built with Vite + React and Firebase. It allows users to log daily symptoms, review past entries, filter by date range, and export reports in PDF or CSV format. This tool is designed to help users monitor their health over time and share clear, structured reports with medical professionals.
+A responsive web application built with React, Firebase, and TailwindCSS to help users track and export their daily physical and mental health symptoms.
 
 ## Features
 
--   Add daily entries with symptom ratings and notes
--   Edit and delete previous entries
--   Responsive design with table view (desktop) and card view (mobile)
--   Date range filtering for focused reporting
--   Export filtered entries to PDF (with averages) or CSV
--   Visual symptom sliders and severity radio buttons
--   Firebase integration for real-time data storage
+-   User authentication (signup, login, logout, remember me)
+-   Password visibility toggle on login and signup forms
+-   Daily symptom tracking for anxiety, depression, sleep, fatigue, memory, pain, and notes
+-   Date-based entries with accurate timestamps
+-   View, edit, and delete entries in a responsive layout
+-   Export entries to PDF and CSV with doctor-friendly print styling and symptom scale legend
+-   Mobile-optimized card view and centered desktop layout
+-   Firestore security rules for per-user data protection
 
-## Technologies Used
+## Tech Stack
 
--   React (with Vite)
--   Firebase Firestore
--   jsPDF + jsPDF-AutoTable
--   FileSaver.js
--   Tailwind CSS
+-   Frontend: React, Vite, TailwindCSS
+-   Backend: Firebase Authentication and Firestore
+-   PDF/CSV: jsPDF, autoTable, FileSaver.js
+-   Deployment: Netlify
 
-## Folder Structure
+## Security
 
-src/
-├── components/
-│ ├── SymptomForm.jsx
-│ └── ViewEntries.jsx
-├── firebaseConfig.js
-├── App.jsx
-├── main.jsx
-public/
-└── favicon.ico
+-   Each entry is tied to the logged-in user's unique Firebase `userId`
+-   Firestore rules restrict read/write access to authenticated users
+-   API keys are excluded from the repository using `.env` files
 
-## Deployment
+## Local Setup
 
-The app is deployed via [Netlify](https://www.netlify.com/). Push to the `main` branch to trigger automatic deployment.
+```bash
+git clone https://github.com/your-username/symptom-tracker-app.git
+cd symptom-tracker-app
+npm install
+npm run dev
+```
 
-## Future Improvements
+Create a `.env` file with your Firebase configuration:
 
--   Email or browser push notifications for daily reminders
--   User authentication and data isolation
--   Symptom severity heatmaps or charts
--   PDF export archive or cloud storage
--   Optional medical metadata for entries (e.g., medications, blood pressure)
+```
+VITE_API_KEY=your-api-key
+VITE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_PROJECT_ID=your-project-id
+VITE_STORAGE_BUCKET=your-project.appspot.com
+VITE_MESSAGING_SENDER_ID=your-sender-id
+VITE_APP_ID=your-app-id
+```
 
-## License
+## Live Demo
 
-This project is open-source and free to use under the MIT License.
+[https://symptomtrackerapp.netlify.app](https://symptomtrackerapp.netlify.app)
+
+## Future Plans
+
+-   Add email or push notification reminders
+-   Visualize symptom trends with charts
+-   Allow users to define and track custom symptoms
+-   Optional demo mode for showcasing app without exposing private data
+
+---
+
+_Last updated: June 8, 2025_
