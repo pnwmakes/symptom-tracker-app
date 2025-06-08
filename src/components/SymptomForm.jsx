@@ -97,7 +97,7 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
     return (
         <form
             onSubmit={handleSubmit}
-            className='w-full max-w-2xl bg-white rounded-2xl shadow-lg p-8 space-y-6 text-gray-800'
+            className='w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 space-y-6 text-gray-800'
         >
             <h2 className='text-3xl font-bold text-center'>
                 {entryToEdit ? 'Edit Symptom Entry' : 'Daily Symptom Check'}
