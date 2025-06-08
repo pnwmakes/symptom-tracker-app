@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import SymptomForm from './components/SymptomForm.jsx';
 import ViewEntries from './components/ViewEntries';
 import Navbar from './components/Navbar.jsx';
+import { where } from 'firebase/firestore';
 
 function App() {
     const [entries, setEntries] = useState([]);
@@ -22,12 +23,13 @@ function App() {
         return () => unsubscribe();
     }, [navigate]);
 
-    // 📋 Fetch entries if logged in
     const fetchEntries = async () => {
         const q = query(
             collection(db, 'symptomEntries'),
+            where('userId', '==', auth.currentUser.uid),
             orderBy('createdAt', 'desc')
         );
+
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map((doc) => ({
             id: doc.id,
