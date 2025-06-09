@@ -5,7 +5,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import SymptomForm from './components/SymptomForm.jsx';
 import ViewEntries from './components/ViewEntries';
-import Navbar from './components/Navbar.jsx';
 
 function App() {
     const [entries, setEntries] = useState([]);
@@ -15,7 +14,6 @@ function App() {
 
     const isDemoUser = user?.email === 'demo@symptomtracker.com';
 
-    // 🔐 Track login state
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
@@ -40,37 +38,39 @@ function App() {
     };
 
     const handleEdit = (entry) => {
-        if (!isDemoUser) {
-            setEditingEntry(entry);
-            window.scrollTo(0, 0);
-        }
-    };
-
-    const handleDelete = async (id) => {
-        if (
-            !isDemoUser &&
-            window.confirm('Are you sure you want to delete this entry?')
-        ) {
-            try {
-                await deleteDoc(doc(db, 'symptomEntries', id));
-                fetchEntries();
-            } catch (err) {
-                console.error('Failed to delete:', err);
-                alert('Error deleting entry.');
-            }
-        }
+        setEditingEntry(entry);
+        window.scrollTo(0, 0);
     };
 
     useEffect(() => {
-        if (user) fetchEntries();
+        if (!user) return;
+
+        if (isDemoUser) {
+            setEntries([
+                {
+                    id: 'demo1',
+                    date: '2025-06-01',
+                    anxiety: '2',
+                    depression: '1',
+                    sleep: '3',
+                    fatigue: '2',
+                    pain: '4',
+                    memory: '1',
+                    triggers: '0',
+                    notes: 'Sample entry',
+                    createdAt: { seconds: Date.now() / 1000 },
+                },
+            ]);
+        } else {
+            fetchEntries();
+        }
     }, [user]);
 
-    if (!user) return null; // optional loading indicator
+    if (!user) return null;
 
     return (
         <div className='min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 py-10 px-4'>
             <div className='max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8'>
-                {/* Branding Header */}
                 <div className='text-center mb-6'>
                     <h1 className='text-4xl font-extrabold text-indigo-600 tracking-tight'>
                         Symptom Tracker
@@ -79,6 +79,7 @@ function App() {
                         Track your health. Understand your patterns.
                     </p>
                 </div>
+
                 <div className='flex justify-center mb-4'>
                     <button
                         onClick={() => auth.signOut()}
@@ -110,7 +111,7 @@ function App() {
                 )}
 
                 <SymptomForm
-                    onSave={fetchEntries}
+                    onSave={isDemoUser ? setEntries : fetchEntries}
                     entryToEdit={editingEntry}
                     clearEdit={() => setEditingEntry(null)}
                     isDemoUser={isDemoUser}
@@ -121,7 +122,7 @@ function App() {
                 <ViewEntries
                     entries={entries}
                     onEdit={handleEdit}
-                    refreshEntries={fetchEntries}
+                    refreshEntries={isDemoUser ? setEntries : fetchEntries}
                     isDemoUser={isDemoUser}
                 />
             </div>
