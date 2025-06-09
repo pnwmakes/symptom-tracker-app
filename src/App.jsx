@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import SymptomForm from './components/SymptomForm.jsx';
 import ViewEntries from './components/ViewEntries';
 import Navbar from './components/Navbar.jsx';
-import { where } from 'firebase/firestore';
 
 function App() {
     const [entries, setEntries] = useState([]);
     const [editingEntry, setEditingEntry] = useState(null);
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
+
+    const isDemoUser = user?.email === 'demo@symptomtracker.com';
 
     // 🔐 Track login state
     useEffect(() => {
@@ -39,8 +40,25 @@ function App() {
     };
 
     const handleEdit = (entry) => {
-        setEditingEntry(entry);
-        window.scrollTo(0, 0);
+        if (!isDemoUser) {
+            setEditingEntry(entry);
+            window.scrollTo(0, 0);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (
+            !isDemoUser &&
+            window.confirm('Are you sure you want to delete this entry?')
+        ) {
+            try {
+                await deleteDoc(doc(db, 'symptomEntries', id));
+                fetchEntries();
+            } catch (err) {
+                console.error('Failed to delete:', err);
+                alert('Error deleting entry.');
+            }
+        }
     };
 
     useEffect(() => {
@@ -84,10 +102,18 @@ function App() {
                     </button>
                 </div>
 
+                {isDemoUser && (
+                    <div className='bg-yellow-200 text-yellow-800 px-4 py-2 text-center font-semibold shadow mb-4 rounded-md'>
+                        ⚠️ You’re using a public demo account. Data may be
+                        visible to others and reset periodically.
+                    </div>
+                )}
+
                 <SymptomForm
                     onSave={fetchEntries}
                     entryToEdit={editingEntry}
                     clearEdit={() => setEditingEntry(null)}
+                    isDemoUser={isDemoUser}
                 />
 
                 <hr className='my-8' />
@@ -96,6 +122,7 @@ function App() {
                     entries={entries}
                     onEdit={handleEdit}
                     refreshEntries={fetchEntries}
+                    isDemoUser={isDemoUser}
                 />
             </div>
         </div>

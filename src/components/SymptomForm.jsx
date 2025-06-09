@@ -3,7 +3,7 @@ import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { auth } from '../firebaseConfig';
 
-const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
+const SymptomForm = ({ onSave, entryToEdit, clearEdit, isDemoUser }) => {
     const [formData, setFormData] = useState({
         date: '',
         anxiety: '',
@@ -52,6 +52,8 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isDemoUser) return; // prevent submit if demo
+
         try {
             const parsedDate = formData.date
                 ? new Date(formData.date + 'T12:00:00Z')
@@ -103,6 +105,12 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
                 {entryToEdit ? 'Edit Symptom Entry' : 'Daily Symptom Check'}
             </h2>
 
+            {isDemoUser && (
+                <p className='text-center text-red-500 text-sm font-medium'>
+                    Demo mode: saving and editing are disabled.
+                </p>
+            )}
+
             <div>
                 <label className='block font-medium mb-1'>Date:</label>
                 <input
@@ -112,6 +120,7 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
                     onChange={handleChange}
                     required
                     className='w-full border border-gray-300 rounded-lg px-3 py-2'
+                    disabled={isDemoUser}
                 />
             </div>
 
@@ -140,6 +149,7 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
                                     checked={formData[symptom] === val}
                                     onChange={handleChange}
                                     required
+                                    disabled={isDemoUser}
                                 />
                                 {val === '0'
                                     ? 'None'
@@ -166,6 +176,7 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
                     value={formData.pain}
                     onChange={handleChange}
                     className='w-full'
+                    disabled={isDemoUser}
                 />
                 <div className='text-sm text-gray-700 mt-1'>
                     Current: <strong>{formData.pain || 'N/A'}</strong>
@@ -181,13 +192,17 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit }) => {
                     placeholder='Any additional context...'
                     className='w-full border border-gray-300 rounded-lg px-3 py-2'
                     rows='4'
+                    disabled={isDemoUser}
                 />
             </div>
 
             <div className='text-center'>
                 <button
                     type='submit'
-                    className='bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg shadow'
+                    className={`bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition ${
+                        isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    disabled={isDemoUser}
                 >
                     {entryToEdit ? 'Update Entry' : 'Save Entry'}
                 </button>

@@ -13,7 +13,7 @@ import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
 import { Pencil, Trash2 } from 'lucide-react';
 
-const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
+const ViewEntries = ({ entries, onEdit, refreshEntries, isDemoUser }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [isMobile, setIsMobile] = useState(false);
@@ -268,13 +268,23 @@ const ViewEntries = ({ entries, onEdit, refreshEntries }) => {
                         <div className='flex gap-4 justify-end pt-3 text-sm'>
                             <button
                                 onClick={() => onEdit(entry)}
-                                className='flex items-center gap-1 text-blue-600 hover:underline'
+                                disabled={isDemoUser}
+                                className={`flex items-center gap-1 text-blue-600 hover:underline ${
+                                    isDemoUser
+                                        ? 'opacity-50 cursor-not-allowed'
+                                        : ''
+                                }`}
                             >
                                 <Pencil size={16} /> Edit
                             </button>
                             <button
                                 onClick={() => handleDelete(entry.id)}
-                                className='flex items-center gap-1 text-red-600 hover:underline'
+                                disabled={isDemoUser}
+                                className={`flex items-center gap-1 text-red-600 hover:underline ${
+                                    isDemoUser
+                                        ? 'opacity-50 cursor-not-allowed'
+                                        : ''
+                                }`}
                             >
                                 <Trash2 size={16} /> Delete
                             </button>

@@ -44,7 +44,19 @@ VITE_PROJECT_ID=your-project-id
 VITE_STORAGE_BUCKET=your-project.appspot.com
 VITE_MESSAGING_SENDER_ID=your-sender-id
 VITE_APP_ID=your-app-id
+
+
 ```
+
+## 🔍 Demo Account
+
+You can try the app live without signing up:
+
+**Demo Login:**  
+Email: `demo@symptomtracker.com`  
+Password: `symptomDemo2024!`
+
+Please don’t store sensitive information when using the demo.
 
 ## Live Demo
 
