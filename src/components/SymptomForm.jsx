@@ -52,7 +52,7 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit, isDemoUser }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isDemoUser) return; // prevent submit if demo
+        if (isDemoUser) return;
 
         try {
             const parsedDate = formData.date
@@ -71,7 +71,7 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit, isDemoUser }) => {
                 await addDoc(collection(db, 'symptomEntries'), {
                     ...formData,
                     createdAt: parsedDate,
-                    userId: auth.currentUser.uid, // ✅ tie entry to logged-in user
+                    userId: auth.currentUser.uid,
                 });
 
                 alert('Entry saved!');
@@ -107,7 +107,7 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit, isDemoUser }) => {
 
             {isDemoUser && (
                 <p className='text-center text-red-500 text-sm font-medium'>
-                    Demo mode: saving and editing are disabled.
+                    Demo mode: entries are not saved to the cloud.
                 </p>
             )}
 
@@ -120,7 +120,6 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit, isDemoUser }) => {
                     onChange={handleChange}
                     required
                     className='w-full border border-gray-300 rounded-lg px-3 py-2'
-                    disabled={isDemoUser}
                 />
             </div>
 
@@ -149,7 +148,6 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit, isDemoUser }) => {
                                     checked={formData[symptom] === val}
                                     onChange={handleChange}
                                     required
-                                    disabled={isDemoUser}
                                 />
                                 {val === '0'
                                     ? 'None'
@@ -176,7 +174,6 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit, isDemoUser }) => {
                     value={formData.pain}
                     onChange={handleChange}
                     className='w-full'
-                    disabled={isDemoUser}
                 />
                 <div className='text-sm text-gray-700 mt-1'>
                     Current: <strong>{formData.pain || 'N/A'}</strong>
@@ -192,7 +189,6 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit, isDemoUser }) => {
                     placeholder='Any additional context...'
                     className='w-full border border-gray-300 rounded-lg px-3 py-2'
                     rows='4'
-                    disabled={isDemoUser}
                 />
             </div>
 
@@ -204,8 +200,17 @@ const SymptomForm = ({ onSave, entryToEdit, clearEdit, isDemoUser }) => {
                     }`}
                     disabled={isDemoUser}
                 >
-                    {entryToEdit ? 'Update Entry' : 'Save Entry'}
+                    {isDemoUser
+                        ? 'Demo Mode – Cannot Save'
+                        : entryToEdit
+                        ? 'Update Entry'
+                        : 'Save Entry'}
                 </button>
+                {isDemoUser && (
+                    <p className='mt-2 text-xs text-gray-500'>
+                        You can try the form, but changes won't be saved.
+                    </p>
+                )}
             </div>
         </form>
     );
