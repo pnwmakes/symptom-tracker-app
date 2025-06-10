@@ -13,7 +13,13 @@ import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
 import { Pencil, Trash2 } from 'lucide-react';
 
-const ViewEntries = ({ entries, onEdit, refreshEntries, isDemoUser }) => {
+const ViewEntries = ({
+    entries,
+    onEdit,
+    refreshEntries,
+    isDemoUser,
+    setDemoEntries,
+}) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [isMobile, setIsMobile] = useState(false);
@@ -28,8 +34,9 @@ const ViewEntries = ({ entries, onEdit, refreshEntries, isDemoUser }) => {
     const filtered = entries.filter((entry) => {
         const createdAt = entry.createdAt?.seconds
             ? new Date(entry.createdAt.seconds * 1000)
-            : null;
-        if (!createdAt) return false;
+            : new Date(entry.createdAt);
+
+        if (!createdAt || isNaN(createdAt.getTime())) return false;
 
         const createdDate = createdAt.toISOString().split('T')[0];
         return (
@@ -41,6 +48,12 @@ const ViewEntries = ({ entries, onEdit, refreshEntries, isDemoUser }) => {
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this entry?'))
             return;
+
+        if (isDemoUser) {
+            setDemoEntries((prev) => prev.filter((entry) => entry.id !== id));
+            return;
+        }
+
         try {
             await deleteDoc(doc(db, 'symptomEntries', id));
             refreshEntries();

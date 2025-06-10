@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import SymptomForm from './components/SymptomForm.jsx';
 import ViewEntries from './components/ViewEntries';
+import Navbar from './components/Navbar.jsx';
 
 function App() {
     const [entries, setEntries] = useState([]);
@@ -14,6 +15,7 @@ function App() {
 
     const isDemoUser = user?.email === 'demo@symptomtracker.com';
 
+    // Track login state
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
@@ -22,7 +24,9 @@ function App() {
         return () => unsubscribe();
     }, [navigate]);
 
+    // Fetch from Firestore for real users
     const fetchEntries = async () => {
+        if (isDemoUser) return;
         const q = query(
             collection(db, 'symptomEntries'),
             where('userId', '==', auth.currentUser.uid),
@@ -37,33 +41,29 @@ function App() {
         setEntries(data);
     };
 
+    // Demo-only: Add/update/delete local entries
+    const addLocalEntry = (entry) => {
+        const id = Date.now().toString();
+        setEntries((prev) => [{ ...entry, id }, ...prev]);
+    };
+
+    const updateLocalEntry = (updatedEntry) => {
+        setEntries((prev) =>
+            prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
+        );
+    };
+
+    const deleteLocalEntry = (id) => {
+        setEntries((prev) => prev.filter((e) => e.id !== id));
+    };
+
     const handleEdit = (entry) => {
         setEditingEntry(entry);
         window.scrollTo(0, 0);
     };
 
     useEffect(() => {
-        if (!user) return;
-
-        if (isDemoUser) {
-            setEntries([
-                {
-                    id: 'demo1',
-                    date: '2025-06-01',
-                    anxiety: '2',
-                    depression: '1',
-                    sleep: '3',
-                    fatigue: '2',
-                    pain: '4',
-                    memory: '1',
-                    triggers: '0',
-                    notes: 'Sample entry',
-                    createdAt: { seconds: Date.now() / 1000 },
-                },
-            ]);
-        } else {
-            fetchEntries();
-        }
+        if (user && !isDemoUser) fetchEntries();
     }, [user]);
 
     if (!user) return null;
@@ -71,6 +71,7 @@ function App() {
     return (
         <div className='min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 py-10 px-4'>
             <div className='max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8'>
+                {/* Branding Header */}
                 <div className='text-center mb-6'>
                     <h1 className='text-4xl font-extrabold text-indigo-600 tracking-tight'>
                         Symptom Tracker
@@ -85,33 +86,20 @@ function App() {
                         onClick={() => auth.signOut()}
                         className='flex items-center gap-2 text-sm font-medium text-white bg-indigo-600 px-4 py-2 rounded-full hover:bg-indigo-700 transition shadow'
                     >
-                        <svg
-                            xmlns='http://www.w3.org/2000/svg'
-                            className='h-4 w-4'
-                            fill='none'
-                            viewBox='0 0 24 24'
-                            stroke='currentColor'
-                        >
-                            <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1'
-                            />
-                        </svg>
                         Log Out
                     </button>
                 </div>
 
                 {isDemoUser && (
-                    <div className='bg-yellow-200 text-yellow-800 px-4 py-2 text-center font-semibold shadow mb-4 rounded-md'>
-                        ⚠️ You’re using a public demo account. Data may be
-                        visible to others and reset periodically.
+                    <div className='bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 text-center font-semibold shadow mb-4 rounded-md'>
+                        🧪 You’re using demo mode. Entries are stored locally
+                        and not saved to the cloud.
                     </div>
                 )}
 
                 <SymptomForm
-                    onSave={isDemoUser ? setEntries : fetchEntries}
+                    onSave={isDemoUser ? addLocalEntry : fetchEntries}
+                    onUpdate={isDemoUser ? updateLocalEntry : null}
                     entryToEdit={editingEntry}
                     clearEdit={() => setEditingEntry(null)}
                     isDemoUser={isDemoUser}
@@ -122,7 +110,8 @@ function App() {
                 <ViewEntries
                     entries={entries}
                     onEdit={handleEdit}
-                    refreshEntries={isDemoUser ? setEntries : fetchEntries}
+                    refreshEntries={isDemoUser ? null : fetchEntries}
+                    deleteLocalEntry={isDemoUser ? deleteLocalEntry : null}
                     isDemoUser={isDemoUser}
                 />
             </div>
