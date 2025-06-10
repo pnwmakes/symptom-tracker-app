@@ -9,6 +9,7 @@ import Navbar from './components/Navbar.jsx';
 
 function App() {
     const [entries, setEntries] = useState([]);
+    const [demoEntries, setDemoEntries] = useState([]);
     const [editingEntry, setEditingEntry] = useState(null);
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
@@ -24,7 +25,7 @@ function App() {
         return () => unsubscribe();
     }, [navigate]);
 
-    // Fetch from Firestore for real users
+    // Fetch entries for real user
     const fetchEntries = async () => {
         if (isDemoUser) return;
         const q = query(
@@ -41,20 +42,20 @@ function App() {
         setEntries(data);
     };
 
-    // Demo-only: Add/update/delete local entries
+    // Local state handlers for demo mode
     const addLocalEntry = (entry) => {
         const id = Date.now().toString();
-        setEntries((prev) => [{ ...entry, id }, ...prev]);
+        setDemoEntries((prev) => [{ ...entry, id }, ...prev]);
     };
 
     const updateLocalEntry = (updatedEntry) => {
-        setEntries((prev) =>
+        setDemoEntries((prev) =>
             prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
         );
     };
 
     const deleteLocalEntry = (id) => {
-        setEntries((prev) => prev.filter((e) => e.id !== id));
+        setDemoEntries((prev) => prev.filter((e) => e.id !== id));
     };
 
     const handleEdit = (entry) => {
@@ -103,16 +104,19 @@ function App() {
                     entryToEdit={editingEntry}
                     clearEdit={() => setEditingEntry(null)}
                     isDemoUser={isDemoUser}
+                    demoEntries={demoEntries}
+                    setDemoEntries={setDemoEntries}
                 />
 
                 <hr className='my-8' />
 
                 <ViewEntries
-                    entries={entries}
+                    entries={isDemoUser ? demoEntries : entries}
                     onEdit={handleEdit}
                     refreshEntries={isDemoUser ? null : fetchEntries}
                     deleteLocalEntry={isDemoUser ? deleteLocalEntry : null}
                     isDemoUser={isDemoUser}
+                    setDemoEntries={setDemoEntries}
                 />
             </div>
         </div>
