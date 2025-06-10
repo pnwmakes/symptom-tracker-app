@@ -205,31 +205,39 @@ const ViewEntries = ({
 
     return (
         <div className='space-y-6'>
-            <div className='flex flex-wrap gap-4 justify-between items-center mb-4'>
-                <div className='flex gap-2'>
+            <div className='flex flex-col sm:flex-row gap-4 w-full sm:items-end mb-4'>
+                <div className='flex flex-col w-full sm:w-auto'>
+                    <label className='text-sm font-medium text-gray-700 mb-1'>
+                        Start Date
+                    </label>
                     <input
                         type='date'
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className='border rounded px-2 py-1'
+                        className='border rounded px-3 py-2 w-full sm:w-48'
                     />
+                </div>
+                <div className='flex flex-col w-full sm:w-auto'>
+                    <label className='text-sm font-medium text-gray-700 mb-1'>
+                        End Date
+                    </label>
                     <input
                         type='date'
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className='border rounded px-2 py-1'
+                        className='border rounded px-3 py-2 w-full sm:w-48'
                     />
                 </div>
-                <div className='flex gap-2'>
+                <div className='flex gap-2 mt-2 sm:mt-0'>
                     <button
                         onClick={exportCSV}
-                        className='bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 text-sm'
+                        className='bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm'
                     >
                         Export CSV
                     </button>
                     <button
                         onClick={exportPDF}
-                        className='bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 text-sm'
+                        className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm'
                     >
                         Export PDF
                     </button>
