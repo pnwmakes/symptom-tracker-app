@@ -4,6 +4,7 @@ import { logoutUser } from '../utils/auth';
 
 const Header = () => {
     const user = auth.currentUser;
+    const isDemoUser = user?.email === 'demo@symptomtracker.com';
 
     const handleLogout = async () => {
         try {
@@ -31,9 +32,18 @@ const Header = () => {
                         />
                     ) : null}
 
-                    <span className='text-sm text-gray-700'>
-                        {user.displayName || user.email}
-                    </span>
+                    <div className='flex items-center gap-2'>
+                        <span className='text-sm text-gray-700'>
+                            {user.displayName || user.email}
+                        </span>
+
+                        {/* ✅ Demo badge */}
+                        {isDemoUser && (
+                            <span className='bg-yellow-200 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded'>
+                                Demo
+                            </span>
+                        )}
+                    </div>
 
                     <button
                         onClick={handleLogout}
