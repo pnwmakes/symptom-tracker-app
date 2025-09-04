@@ -1,9 +1,9 @@
 import React from 'react';
-import { auth } from '../firebaseConfig';
 import { logoutUser } from '../utils/auth';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const Header = () => {
-    const user = auth.currentUser;
+    const { user } = useAuth();
     const isDemoUser = user?.email === 'demo@symptomtracker.com';
 
     const handleLogout = async () => {
