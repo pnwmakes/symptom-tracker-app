@@ -212,8 +212,7 @@
 import React, { useEffect, useState } from 'react';
 import { auth, db } from './firebaseConfig';
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext.jsx';
 
 import SymptomForm from './components/SymptomForm.jsx';
 import ViewEntries from './components/ViewEntries';
@@ -224,26 +223,16 @@ function App() {
     const [entries, setEntries] = useState([]);
     const [demoEntries, setDemoEntries] = useState([]);
     const [editingEntry, setEditingEntry] = useState(null);
-    const [user, setUser] = useState(null);
-    const navigate = useNavigate();
+    const { user, loading } = useAuth();
 
     const isDemoUser = user?.email === 'demo@symptomtracker.com';
 
-    // Track login state
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            if (!currentUser) navigate('/login');
-        });
-        return () => unsubscribe();
-    }, [navigate]);
-
     // Fetch real entries from Firestore
     const fetchEntries = async () => {
-        if (isDemoUser) return;
+        if (isDemoUser || !user) return;
         const q = query(
             collection(db, 'symptomEntries'),
-            where('userId', '==', auth.currentUser.uid),
+            where('userId', '==', user.uid),
             orderBy('createdAt', 'desc')
         );
         const snapshot = await getDocs(q);
@@ -253,6 +242,14 @@ function App() {
         }));
         setEntries(data);
     };
+
+    // Fetch from Firestore when auth is resolved and user is real (not demo)
+    useEffect(() => {
+        if (!loading && user && !isDemoUser) {
+            fetchEntries();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading, user, isDemoUser]);
 
     // Local-only entry handlers for demo mode
     const addLocalEntry = (entry) => {
@@ -274,11 +271,6 @@ function App() {
         setEditingEntry(entry);
         window.scrollTo(0, 0);
     };
-
-    // Fetch from Firestore if real user
-    useEffect(() => {
-        if (user && !isDemoUser) fetchEntries();
-    }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Prepopulate demo entries on first login
     useEffect(() => {
@@ -361,7 +353,9 @@ function App() {
         }
     }, [user, isDemoUser, demoEntries.length]);
 
-    if (!user) return null;
+    // Render states
+    if (loading) return <div className='p-6 text-center'>Loading…</div>;
+    if (!user) return null; // ProtectedRoute handles redirect
 
     return (
         <div className='min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200'>
