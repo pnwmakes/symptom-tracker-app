@@ -138,7 +138,9 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { loginWithGoogle } from '../utils/auth';
 import { useNavigate, Link } from 'react-router-dom';
-import AuthButtons from './AuthButtons'; // ✅ import
+import AuthButtons from './AuthButtons';
+import AuthHeader from './AuthHeader';
+import Footer from './Footer';
 
 const Signup = () => {
     const [email, setEmail] = useState('');
@@ -175,16 +177,13 @@ const Signup = () => {
     };
 
     return (
-        <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200 px-4'>
-            <div className='w-full max-w-md bg-white p-8 rounded-xl shadow-lg'>
-                <div className='text-center mb-6'>
-                    <h1 className='text-4xl font-extrabold text-indigo-600 tracking-tight'>
-                        Symptom Tracker
-                    </h1>
-                    <p className='text-sm text-gray-500 mt-1'>
-                        Create your account to begin tracking
-                    </p>
-                </div>
+        <div className='min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 px-4'>
+            <AuthHeader />
+
+            <div className='w-full max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg'>
+                <h2 className='text-2xl font-bold mb-6 text-center text-indigo-600'>
+                    Sign Up
+                </h2>
 
                 {error && (
                     <p className='text-red-500 text-sm mb-4 text-center'>
@@ -192,7 +191,7 @@ const Signup = () => {
                     </p>
                 )}
 
-                {/* ✅ Shared Google button + divider */}
+                {/* Google Sign-In */}
                 <AuthButtons onGoogleClick={handleGoogle} />
 
                 <form onSubmit={handleSignup} className='space-y-4'>
@@ -247,6 +246,7 @@ const Signup = () => {
                     </Link>
                 </p>
             </div>
+            <Footer />
         </div>
     );
 };

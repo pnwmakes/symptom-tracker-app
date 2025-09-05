@@ -218,6 +218,7 @@ import SymptomForm from './components/SymptomForm.jsx';
 import ViewEntries from './components/ViewEntries';
 import Navbar from './components/Navbar.jsx'; // keep if you use it
 import Header from './components/Header.jsx';
+import Footer from './components/Footer.jsx'; // Optional Footer component
 
 function App() {
     const [entries, setEntries] = useState([]);
@@ -361,10 +362,8 @@ function App() {
         <div className='min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200'>
             {/* Global header with user info and Sign Out */}
             <Header />
-
             {/* Optional site nav */}
             {/* <Navbar /> */}
-
             <div className='py-10 px-4'>
                 <div className='max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8'>
                     {/* Demo Banner */}
@@ -399,6 +398,7 @@ function App() {
                     />
                 </div>
             </div>
+            <Footer /> {/* ✅ global footer */}
         </div>
     );
 }
