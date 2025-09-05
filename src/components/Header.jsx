@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { logoutUser } from '../utils/auth';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -15,14 +16,16 @@ const Header = () => {
     };
 
     return (
-        <header className='flex items-center justify-between px-6 py-3 border-b bg-white/90 backdrop-blur shadow-sm'>
-            <h1 className='text-xl font-bold text-indigo-600'>
-                Symptom Tracker
-            </h1>
+        <header className='sticky top-0 z-20 flex items-center justify-between px-6 py-3 border-b bg-white/90 backdrop-blur shadow-sm'>
+            {/* ✅ App title (clickable home) */}
+            <Link to='/' aria-label='Go to home' className='select-none'>
+                <span className='text-2xl font-extrabold tracking-tight text-indigo-600'>
+                    Symptom Tracker
+                </span>
+            </Link>
 
             {user ? (
                 <div className='flex items-center gap-3'>
-                    {/* Avatar if available */}
                     {user.photoURL ? (
                         <img
                             src={user.photoURL}
@@ -36,8 +39,6 @@ const Header = () => {
                         <span className='text-sm text-gray-700'>
                             {user.displayName || user.email}
                         </span>
-
-                        {/* ✅ Demo badge */}
                         {isDemoUser && (
                             <span className='bg-yellow-200 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded'>
                                 Demo
